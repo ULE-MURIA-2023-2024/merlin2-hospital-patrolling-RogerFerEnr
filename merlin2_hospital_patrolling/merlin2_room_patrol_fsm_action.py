@@ -12,6 +12,7 @@ from yasmin_ros.basic_outcomes import SUCCEED
 from yasmin import CbState 
 from kant_dto import PddlObjectDto, PddlConditionEffectDto
 
+from geometry_msgs.msg import Twist
 
 
 class Merlin2RoomPatrolFsmAction(Merlin2FsmAction):
@@ -20,6 +21,9 @@ class Merlin2RoomPatrolFsmAction(Merlin2FsmAction):
 
         self._room = PddlObjectDto(room_type, "room")
         self._wp = PddlObjectDto(wp_type,"wp")
+        
+        self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
+
 
         super().__init__("room_patrol")
     
@@ -53,10 +57,24 @@ class Merlin2RoomPatrolFsmAction(Merlin2FsmAction):
         return SUCCEED
     
     def rotate(self, blackboard: Blackboard)-> str:
+    	
+    	# Publicamos la información en el tópico cmd_vel del robot
+        twist = Twist()
+        twist.angular.z = 1  # Se puede ajustar la velocidad angular a nuestro gusto
+        self.publisher.publish(twist)
 
-        #### Completar el código. Podemos usar un twist para que gire y otro con cero
+        # El robot estará rotando 10 segundos
+        self.get_logger().info('El robot ahora está rotando')
+        self.create_timer(10.0, self.stop_rotation)
+
         return SUCCEED
 
+    def stop_rotation(self):
+        # Publicamos un mensaje para detener el giro
+        twist = Twist()
+	twist.angular.z = 0.0
+	self.publisher.publish(twist)
+	self.get_logger().info('El robot ya ha parado de rotar')
 
 
     def create_parameters(self) -> List[PddlObjectDto]:
